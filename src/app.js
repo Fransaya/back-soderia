@@ -12,12 +12,14 @@ const CorsOptions={
 
 //* IMPORTACION DE RUTAS
 import indexRouter from './routes/indexRoutes.js';
+import errorHandler from './middlewares/errorHandler.js';
 
 const app = express();
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(cors(CorsOptions))
 app.use(express.json());
+app.use(errorHandler);
 
 app.use("/api", indexRouter);
 

@@ -4,7 +4,7 @@ import productoRoute from "./productosRoutes.js";
 import ventasRoute from "./ventasRoute.js";
 import clientesRouter from "./clientesRoutes.js";
 import usuarioRoute from "./usuarioRoutes.js";
-
+import pedidosRoute from "./pedidosRoute.js";
 
 const indexRouter = Router();
 
@@ -16,7 +16,7 @@ indexRouter.use('/producto', productoRoute);
 indexRouter.use('/venta',ventasRoute);
 
 //* RUTA DE PEDIDOS
-indexRouter.use('/pedido', ventasRoute);
+indexRouter.use('/pedidos', pedidosRoute);
 
 //* RUTA DE CLIENTES
 indexRouter.use('/clientes', clientesRouter);
