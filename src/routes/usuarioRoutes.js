@@ -7,8 +7,8 @@ import {
     getUserByIdController,
     createUserController,
     updateUserController,
-    updateStatusUserController
-} from '../controllers/clientesController.js';
+    updatePasswordUserController
+} from '../controllers/usuarioController.js';
 
 const usuarioRoute = Router();
 
@@ -16,7 +16,7 @@ const usuarioRoute = Router();
 usuarioRoute.post('/login', loginController);
 
 // logout 
-usuarioRoute.post('/logout', logoutController);
+usuarioRoute.post('/logout/:id', logoutController);
 
 // get all users
 usuarioRoute.get('/', getAllUsersController);
@@ -31,4 +31,6 @@ usuarioRoute.post('/', createUserController);
 usuarioRoute.put('/:id', updateUserController);
 
 // update status user
-usuarioRoute.put('/status/:id/:estado', updateStatusUserController);
+usuarioRoute.put('/password/:id',updatePasswordUserController);
+
+export default usuarioRoute;

@@ -1,9 +1,9 @@
 import { Router } from "express";
 
-import proveedorRoute from "./proveedorRoutes.js";
 import productoRoute from "./productosRoutes.js";
 import ventasRoute from "./ventasRoute.js";
 import clientesRouter from "./clientesRoutes.js";
+import usuarioRoute from "./usuarioRoutes.js";
 
 
 const indexRouter = Router();
@@ -15,11 +15,17 @@ indexRouter.use('/producto', productoRoute);
 //* RUTA DE VENTAS
 indexRouter.use('/venta',ventasRoute);
 
+//* RUTA DE PEDIDOS
+indexRouter.use('/pedido', ventasRoute);
+
 //* RUTA DE CLIENTES
 indexRouter.use('/clientes', clientesRouter);
 
 //* RUTA DE USUARIOS
-indexRouter.use('/usuario')
+indexRouter.use('/usuario', usuarioRoute)
+
+//* RUTA DE BARRIOS
+
 
 export default indexRouter;
 
