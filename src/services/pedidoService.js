@@ -153,6 +153,15 @@ export const updatePedidoService = async(idPedido, pedido)=>{
 export const addProductoToPedidoService = async(idPedido, productos)=>{
     const connect = await Connection();
     try {
+        // primero verifico si el estado del pedido esta en 1 (RECIBIDO);
+        const queryEstado = `SELECT estado FROM pedidos WHERE idPedido = ?`;
+        
+        const [estadoPedido] = await connect.query(queryEstado, [idPedido]);
+
+        // devuelvo un error si el estado del producto es distinto de 1 ( SOLO SE PUEDEN AGREGAR PRODUCTO A PEDIDOS ESTEN EN ESTADO 1 => RECIBIDO )
+        if(estadoPedido[0].estado !== 1) return {status:false, message:"NO se pueden eliminar los productos del pedido ya que no esta en estado RECIBIDO"};
+
+
         // consulta para agregar un producto/s a un pedido ya existente
         const queryDetalle = `INSERT INTO detallePedido (idPedido, idProducto, cantidadUnidades, total, precio)
                             VALUES (?, ?, ?, ?, ?)`;
