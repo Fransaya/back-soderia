@@ -1,4 +1,3 @@
-import { es } from "date-fns/locale";
 import Connection from "../config/db.js";
 
 //* obtener todos los pedidos
@@ -27,10 +26,11 @@ export const getPedidosService = async({ fecha, estado, idCliente } = {})=>{
 
         // consulta para obtener unicamente los pedidos ( informacion basica de los pedidos X sin detalles)
         let queryPedido = `select p.idPedido, c.id as idCliente, c.nombre, c.telefono, c.direccion, b.nombre as barrioCliente, u.id as idUsuario, p.total as totalPedido,
-                            p.fechaRegistro, p.estado, p.observaciones FROM pedidos p
+                            p.fechaRegistro, ep.idEstado as idEstado, ep.valor as estado, p.observaciones FROM pedidos p
                             LEFT JOIN  clientes c on p.idCliente = c.id
                             LEFT JOIN barrio b on c.idBarrio = b.idBarrio
                             LEFT JOIN usuario u on u.id = c.id
+                            LEFT JOIN estadoPedido ep ON ep.idEstado = p.estado
                             WHERE 1 = 1`;
 
         if(condiciones.length > 0){
@@ -104,7 +104,7 @@ export const registrarPedidoService = async(pedido)=>{
 
         const updateTotal = `UPDATE pedidos SET total = ? WHERE idPedido = ?`;
 
-        const [update] = await connect.execute(updateTotal, [totalPedido, idPedido]);
+        await connect.execute(updateTotal, [totalPedido, idPedido]);
 
         return {status:true, message:"Pedido registrado correctamente"};
     } catch (error) {
@@ -122,7 +122,7 @@ export const updatePedidoService = async(idPedido, pedido)=>{
         // consulta para modificar datos principales del pedido
         const queryUpdate = `UPDATE pedidos SET idCliente = ?, idUsuario = ?, total = ?, fechaRegistro  =?, observaciones = ? WHERE idPedido  = ?`;
 
-        const [updatedPedido] = await connect.execute(queryUpdate,[
+        await connect.execute(queryUpdate,[
             pedido.idCliente,
             pedido.idUsuario,
             pedido.totalPedido,
@@ -161,7 +161,7 @@ export const addProductoToPedidoService = async(idPedido, productos)=>{
         if(productos.length > 0){
             for(let producto of productos){
                 // ejectuo consulta para agregar nuevo producto
-                const [detalleNuevo] = await connect.execute(queryDetalle,[
+                await connect.execute(queryDetalle,[
                     idPedido,
                     producto.idProducto,
                     producto.unidadesPedidas,
@@ -172,7 +172,7 @@ export const addProductoToPedidoService = async(idPedido, productos)=>{
                 // consulta para actualizar el total del pedido
                 const queryUpdate = `UPDATE pedidos SET total = total + ? WHERE idPedido = ?`;
 
-                const [update] = await connect.execute(queryUpdate, [producto.unidadesPedidas * producto.precioUnitario, idPedido]);
+                await connect.execute(queryUpdate, [producto.unidadesPedidas * producto.precioUnitario, idPedido]);
             };
         };
 
@@ -180,6 +180,44 @@ export const addProductoToPedidoService = async(idPedido, productos)=>{
     } catch (error) {
         console.error("Error al agregar el producto al pedido", error)
         throw new Error("Error al agregar el producto al pedido");
+    } finally {
+        connect.releaseConnection();
+    };
+};
+
+//* eliminar los productos de un pedido que esta en estado 1
+export const deleteProductosPedidoService = async(idPedido, productos)=>{
+    const connect = await Connection();
+    try {
+        // primero verifico si el estado del pedido esta en 1 (RECIBIDO);
+        const queryEstado = `SELECT estado FROM pedidos WHERE idPedido = ?`;
+        
+        const [estadoPedido] = await connect.query(queryEstado, [idPedido]);
+
+        // devuelvo un error si el estado del producto es distinto de 1 ( SOLO SE PUEDEN ELIMINAR LOS QUE ESTEN EN ESTADO 1 => RECIBIDO )
+        if(estadoPedido[0].estado !== 1) return {status:false, message:"NO se pueden eliminar los productos del pedido ya que no esta en estado RECIBIDO"};
+
+        // consulta para eliminar los productos de un pedido
+        const deleteQuery = `DELETE FROM detallePedido WHERE idPedido = ? AND idProducto = ?`;
+
+        let montoProductosEliminados = 0;
+
+        for (let producto of productos){
+            // acumulo el valor total de los productos a eliminar
+            montoProductosEliminados += (producto.unidadesPedidas * producto.precioUnitario);
+
+            await connect.execute(deleteQuery, [idPedido, producto.idProducto]);    
+        };
+
+        // actualizo el total del pedido restando el monto de los productos eliminado
+        const updateTotalQuery = `UPDATE pedidos SET total = total - ? WHERE idPedido = ?`;
+        
+        await connect.execute(updateTotalQuery, [montoProductosEliminados, idPedido]);
+
+        return {status:true, message:"Productos eliminados correctamente del pedido"};
+    } catch (error) {
+        console.error("Error al eliminar los productos del pedido", error);
+        throw new Error("Error al eliminar los productos del pedido");
     } finally {
         connect.releaseConnection();
     };

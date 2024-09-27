@@ -3,7 +3,8 @@ import {
     getPedidosService,
     registrarPedidoService,
     updatePedidoService,
-    addProductoToPedidoService
+    addProductoToPedidoService,
+    deleteProductosPedidoService
 } from "../services/pedidoService.js";
 
 //* obtener todos los pedidos
@@ -67,6 +68,20 @@ export const addProductoPedidoController = async(req, res, next)=>{
         return res.status(200).json(pedidoModificado);
     } catch (error) {
         console.error("Error al modificar el pedido", error);
+        next(error);
+    };
+};
+
+//* eliminar productos de un pedido en estado ( RECIBIDO )
+export const deleteProductoPedidoController = async(req, res, next)=>{
+    const { id } = req.params;
+    const productos = req.body;
+    try {
+        const productosEliminados = await deleteProductosPedidoService(id, productos);
+
+        return res.status(200).json(productosEliminados);
+    } catch (error) {
+        console.error("Error al eliminar el producto del pedido", error);
         next(error);
     };
 };

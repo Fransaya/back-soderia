@@ -5,7 +5,8 @@ import {
     getPedidosContoller,
     registerPedidoController,
     updatePedidoController,
-    addProductoPedidoController
+    addProductoPedidoController,
+    deleteProductoPedidoController
 } from "../controllers/pedidosController.js";
 
 
@@ -23,6 +24,9 @@ pedidosRoute.put('/:id', updatePedidoController);
 
 //* modificacion de pedido => se agrega un nuevo proucto al pedido
 pedidosRoute.post('/:id', addProductoPedidoController);
+
+//* modificacion de pedido => eliminar un producto del pedido 
+pedidosRoute.delete('/:id',deleteProductoPedidoController);
 
 
 export default pedidosRoute;
