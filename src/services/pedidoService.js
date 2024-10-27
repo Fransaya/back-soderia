@@ -14,7 +14,7 @@ export const getPedidosService = async({ fecha, estado, idCliente } = {})=>{
             values.push(fecha);
         };
 
-        if(estado){
+        if(estado && estado != 0){
             condiciones.push("p.estado = ?");
             values.push(estado);
         };
@@ -75,6 +75,8 @@ export const getPedidosService = async({ fecha, estado, idCliente } = {})=>{
 export const registrarPedidoService = async(pedido)=>{
     const connect = await Connection();
     try {
+        console.log("datos recibidos", pedido)
+
         // inserto en la tabla pedidos
         const queryInsert = `INSERT INTO pedidos (idCliente, idUsuario, total, fechaRegistro, estado, observaciones)
                             VALUES ( ?, ?, ? ,?, ?, ?)`;
@@ -84,9 +86,10 @@ export const registrarPedidoService = async(pedido)=>{
             pedido.idUsuario,
             pedido.totalPedido,
             pedido.fechaRegistro,
-            pedido.estado,
-            pedido.observaciones,
+            1,
+            pedido.observaciones | null,
         ]);
+
 
         // obtengo el id del pedido insertado
         let idPedido = pedidoNuevo.insertId;
@@ -98,8 +101,8 @@ export const registrarPedidoService = async(pedido)=>{
 
         // inserto en la tabla de detalle pedido recorriendo el array del detalle recibido
         for(let detalle of pedido.detalles){
-            totalPedido+= detalle.unidadesPedidas * detalle.precioUnitario;
-            await connect.execute(queryDetalle, [idPedido, detalle.idProducto, detalle.unidadesPedidas, detalle.unidadesPedidas * detalle.precioUnitario, detalle.precioUnitario]);
+            totalPedido+= detalle.cantidadUnidades * detalle.precio;
+            await connect.execute(queryDetalle, [idPedido, detalle.id, detalle.cantidadUnidades, detalle.cantidadUnidades * detalle.precio, detalle.precio]);
         }
 
         const updateTotal = `UPDATE pedidos SET total = ? WHERE idPedido = ?`;
@@ -116,86 +119,139 @@ export const registrarPedidoService = async(pedido)=>{
 };
 
 //* modificar pedidos/ estado de pedido
-export const updatePedidoService = async(idPedido, pedido)=>{
+// export const updatePedidoService = async(idPedido, pedido)=>{
+//     const connect = await Connection();
+//     try {
+//         primero verifico si el estado del pedido esta en 1 (RECIBIDO);
+//         const queryEstado = `SELECT estado FROM pedidos WHERE idPedido = ?`;
+        
+//         const [estadoPedido] = await connect.query(queryEstado, [idPedido]);
+
+//          devuelvo un error si el estado del producto es distinto de 1 ( SOLO SE PUEDEN ELIMINAR LOS QUE ESTEN EN ESTADO 1 => RECIBIDO )
+//         if(estadoPedido[0].estado !== 1) return {status:false, message:"NO se pueden eliminar los productos del pedido ya que no esta en estado RECIBIDO"};
+
+//         0. guardo el array del detalle de pedido
+//         let detallePedido = pedido.detalles;
+
+//         1. obtengo informacion del detalle de pedido antes de realizar las operaciones para comparar
+//         const [ oldPedido ] = await connect.execute(`SELECT idDetalle, idProducto, cantidadUnidades as unidadesPedidas, precio as precioUnitario, total FROM detallePedido WHERE idPedido = ?`, [idPedido]);
+
+//         console.log("pedido antiguo", oldPedido);
+//         console.log("nuevo pedido", detallePedido)
+
+//         2. comparacion de longitd de los arrays
+//         if(oldPedido.length == detallePedido.length){ // los pedidos son iguales en longitud
+//             2.1 itero sobre los arrays para comprar
+//             for (let i=0; i < detallePedido.length;i++){
+//                 if(oldPedido[i].idProducto != detallePedido[i].idProducto || oldPedido[i].unidadesPedidas != detallePedido[i].unidadesPedidas || oldPedido[i].precioUnitario != detallePedido[i].precioUnitario){
+//                     2.2 si algun dato es distinto, modifico el detalle
+//                     const queryUpdate = `UPDATE detallePedido SET idProducto = ?, cantidadUnidades = ?, precio = ?, total = ? WHERE idDetalle = ?`;
+
+//                     await connect.execute(queryUpdate, [detallePedido[i].idProducto, detallePedido[i].unidadesPedidas, detallePedido[i].precioUnitario, detallePedido[i].unidadesPedidas * detallePedido[i].precioUnitario, oldPedido[i].idDetalle]);
+//                 };
+//             }
+//         }else if(oldPedido.length < detallePedido.length){ 3. agrego nuevo producto al pedido
+//             for(let i=0; i <= detallePedido.length;i++){
+//                 if(detallePedido[i].idDetalle == 0){ 3.1. si el idDetalle = 0, es nuevo producto al pedido
+//                     const queryInsert = `INSERT INTO detallePedido (idPedido, idProducto, cantidadUnidades, total, precio)
+//                                         VALUES (?, ?, ?, ?, ?)`;
+//                     let [pedidoconcero] = await connect.execute(queryInsert,[idPedido, detallePedido[i].idProducto, detallePedido[i].unidadesPedidas, detallePedido[i].unidadesPedidas * detallePedido[i].precioUnitario, detallePedido[i].precioUnitario]);
+//                     console.log("info pedido", pedidoconcero)
+//                 }else{ 4. si no tiene id de detalle, actualizo los datos del mismo
+//                     console.log("ACTUALIZACION DE VALORES DE PEDIDOS", detallePedido)
+//                     console.log("error al actualizar pedido con idDetalle !==0")
+                    
+//                     const updateQuery = `UPDATE detallePedido SET idProducto = ?, cantidadUnidades = ?, precio = ?, total = ? WHERE idDetalle = ?`;
+
+//                     let [updatePedido] = await connect.execute(updateQuery, [detallePedido[i].idProducto, detallePedido[i].unidadesPedidas, detallePedido[i].precioUnitario, detallePedido[i].unidadesPedidas * detallePedido[i].precioUnitario, detallePedido[i].idDetalle]); 
+
+//                     console.log("info pedido", updatePedido)
+//                 }
+//             }
+//         }
+
+//         return {status:true, message:"Pedido modificado correctamente"}
+//     } catch (error) {
+//         console.error("Error al modificar el pedido", error)
+//         throw new Error("Error al modificar el pedido");
+//     } finally {
+//         connect.releaseConnection();
+//     };
+// };
+
+//* modificar pedidos/ estado de pedido
+export const updatePedidoService = async (idPedido, pedido) => {
     const connect = await Connection();
     try {
-        // consulta para modificar datos principales del pedido
-        const queryUpdate = `UPDATE pedidos SET idCliente = ?, idUsuario = ?, total = ?, fechaRegistro  =?, observaciones = ? WHERE idPedido  = ?`;
+        // Obtener detalles del pedido antiguo
+        const [oldPedido] = await connect.execute(`SELECT idDetalle, idProducto, cantidadUnidades as unidadesPedidas, precio as precioUnitario, total FROM detallePedido WHERE idPedido = ?`, [idPedido]);
 
-        await connect.execute(queryUpdate,[
-            pedido.idCliente,
-            pedido.idUsuario,
-            pedido.totalPedido,
-            pedido.fechaRegistro,
-            pedido.observaciones,
-            idPedido,
-        ]);
+        let detallePedido = pedido.detalles;
 
-        // valido si tambien recibo datos del detalle del pedido para modificar
-        if(pedido.detalles.length > 0){
-            const queryDetalle = `UPDATE detallePedido SET idProducto = ?, cantidadUnidades = ?, total = ?, precio = ? WHERE idPedido = ?`;
+        // Comparación de la longitud de los arrays
+        if (oldPedido.length === detallePedido.length) {
+            // Iterar sobre los arrays para comparar y actualizar si es necesario
+            for (let i = 0; i < detallePedido.length; i++) {
+                if (oldPedido[i].idProducto !== detallePedido[i].idProducto || oldPedido[i].unidadesPedidas !== detallePedido[i].unidadesPedidas || oldPedido[i].precioUnitario !== detallePedido[i].precioUnitario) {
+                    const queryUpdate = `UPDATE detallePedido SET idProducto = ?, cantidadUnidades = ?, precio = ?, total = ? WHERE idDetalle = ?`;
+                    await connect.execute(queryUpdate, [
+                        detallePedido[i].idProducto,
+                        detallePedido[i].unidadesPedidas,
+                        detallePedido[i].precioUnitario,
+                        detallePedido[i].unidadesPedidas * detallePedido[i].precioUnitario,
+                        oldPedido[i].idDetalle
+                    ]);
+                }
+            }
+        } else {
+            // Manejo cuando hay diferencias de longitud en los detalles del pedido
+            for (let i = 0; i < detallePedido.length; i++) {
+                // Si idDetalle es 0, es un nuevo producto, hacer inserción
+                if (detallePedido[i].idDetalle === 0) {
+                    const queryInsert = `INSERT INTO detallePedido (idPedido, idProducto, cantidadUnidades, total, precio) VALUES (?, ?, ?, ?, ?)`;
+                    await connect.execute(queryInsert, [
+                        idPedido,
+                        detallePedido[i].idProducto,
+                        detallePedido[i].unidadesPedidas,
+                        detallePedido[i].unidadesPedidas * detallePedido[i].precioUnitario,
+                        detallePedido[i].precioUnitario
+                    ]);
+                } else {
+                    // Si no, actualizar
+                    const updateQuery = `UPDATE detallePedido SET idProducto = ?, cantidadUnidades = ?, precio = ?, total = ? WHERE idDetalle = ?`;
+                    await connect.execute(updateQuery, [
+                        detallePedido[i].idProducto,
+                        detallePedido[i].unidadesPedidas,
+                        detallePedido[i].precioUnitario,
+                        detallePedido[i].unidadesPedidas * detallePedido[i].precioUnitario,
+                        detallePedido[i].idDetalle
+                    ]);
+                }
+            }
+        }
 
-            for(let detalle of pedido.detalles){
-                await connect.execute(queryDetalle, [ detalle.idProducto, detalle.unidadesPedidas, detalle.unidadesPedidas * detalle.precioUnitario, detalle.precioUnitario, idPedido]);
-            };
-        };
-        return {status:true, message:"Pedido modificado correctamente"}
-        
+        // calculo el nuevo total del pedido
+        const [newTotal] = await connect.execute(`SELECT SUM(total) as newTotal FROM detallePedido WHERE idPedido = ?`, [idPedido]);
+
+        // actualizo el nuevo total en el pedido
+        const updateTotalQuery = `UPDATE pedidos SET total = ?, estado = ?, observaciones = ? WHERE idPedido = ?`;
+
+        const [updatePedido] = await connect.execute(updateTotalQuery, [newTotal[0].newTotal, pedido.estado, pedido.observaciones || '', idPedido]);
+
+        if(updatePedido.affectedRows === 0) return {status:false, message:"Error al actualizar el total del pedido"}
+
+        return { status: true, message: "Pedido modificado correctamente" };
     } catch (error) {
-        console.error("Error al modificar el pedido", error)
+        console.error("Error al modificar el pedido", error);
         throw new Error("Error al modificar el pedido");
     } finally {
         connect.releaseConnection();
-    };
+    }
 };
 
-//* agrega producto a un pedido ya registrado
-export const addProductoToPedidoService = async(idPedido, productos)=>{
-    const connect = await Connection();
-    try {
-        // primero verifico si el estado del pedido esta en 1 (RECIBIDO);
-        const queryEstado = `SELECT estado FROM pedidos WHERE idPedido = ?`;
-        
-        const [estadoPedido] = await connect.query(queryEstado, [idPedido]);
-
-        // devuelvo un error si el estado del producto es distinto de 1 ( SOLO SE PUEDEN AGREGAR PRODUCTO A PEDIDOS ESTEN EN ESTADO 1 => RECIBIDO )
-        if(estadoPedido[0].estado !== 1) return {status:false, message:"NO se pueden eliminar los productos del pedido ya que no esta en estado RECIBIDO"};
-
-
-        // consulta para agregar un producto/s a un pedido ya existente
-        const queryDetalle = `INSERT INTO detallePedido (idPedido, idProducto, cantidadUnidades, total, precio)
-                            VALUES (?, ?, ?, ?, ?)`;
-
-
-        if(productos.length > 0){
-            for(let producto of productos){
-                // ejectuo consulta para agregar nuevo producto
-                await connect.execute(queryDetalle,[
-                    idPedido,
-                    producto.idProducto,
-                    producto.unidadesPedidas,
-                    producto.unidadesPedidas * producto.precioUnitario,
-                    producto.precioUnitario,
-                ]);
-
-                // consulta para actualizar el total del pedido
-                const queryUpdate = `UPDATE pedidos SET total = total + ? WHERE idPedido = ?`;
-
-                await connect.execute(queryUpdate, [producto.unidadesPedidas * producto.precioUnitario, idPedido]);
-            };
-        };
-
-        return {status:true, message:"Producto agregado correctamente al pedido"};
-    } catch (error) {
-        console.error("Error al agregar el producto al pedido", error)
-        throw new Error("Error al agregar el producto al pedido");
-    } finally {
-        connect.releaseConnection();
-    };
-};
 
 //* eliminar los productos de un pedido que esta en estado 1
-export const deleteProductosPedidoService = async(idPedido, productos)=>{
+export const deleteProductosPedidoService = async(idPedido, producto)=>{
     const connect = await Connection();
     try {
         // primero verifico si el estado del pedido esta en 1 (RECIBIDO);
@@ -207,16 +263,14 @@ export const deleteProductosPedidoService = async(idPedido, productos)=>{
         if(estadoPedido[0].estado !== 1) return {status:false, message:"NO se pueden eliminar los productos del pedido ya que no esta en estado RECIBIDO"};
 
         // consulta para eliminar los productos de un pedido
-        const deleteQuery = `DELETE FROM detallePedido WHERE idPedido = ? AND idProducto = ?`;
+        const deleteQuery = `DELETE FROM detallePedido WHERE idPedido = ? AND idProducto = ? and idDetalle = ?`;
 
         let montoProductosEliminados = 0;
 
-        for (let producto of productos){
-            // acumulo el valor total de los productos a eliminar
-            montoProductosEliminados += (producto.unidadesPedidas * producto.precioUnitario);
+        // acumulo el valor total de los productos a eliminar
+        montoProductosEliminados += (producto.cantidadUnidades * producto.precio);
 
-            await connect.execute(deleteQuery, [idPedido, producto.idProducto]);    
-        };
+        const [deleted] = await connect.execute(deleteQuery, [idPedido, producto.idProducto, producto.idDetalle]);    
 
         // actualizo el total del pedido restando el monto de los productos eliminado
         const updateTotalQuery = `UPDATE pedidos SET total = total - ? WHERE idPedido = ?`;

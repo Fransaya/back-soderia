@@ -7,7 +7,7 @@ const CorsOptions={
     methods: 'GET,POST,PUT,DELETE,PATCH',
     allowHeaders: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MDS. Content-Type, Date, X-Api-Version',
     credentials: true,
-};
+}; 
 
 
 //* IMPORTACION DE RUTAS

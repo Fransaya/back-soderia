@@ -17,7 +17,7 @@ export const loginService = async (email, password) => {
         // comparto los valores 
         const resultComaprte = await bcrypt.compare(password, existUser[0].password);
 
-        if(!resultComaprte) return { message: "Contraseña incorrecta" };
+        if(!resultComaprte) return {status:false, message: "Contraseña incorrecta" };
 
         // creo el token de sesion
         const token = jwt.sign({ id: existUser[0].id }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -34,16 +34,16 @@ export const loginService = async (email, password) => {
 };
 
 // logout controller
-export const logoutService = async (idUsuario) => {
+export const logoutService = async (idUsuario, token) => {
     const connect = await Connection();
     try {
-        const query = `DELETE FROM sesiones where idUsuario = ?`;
+        const query = `DELETE FROM sesiones where idUsuario = ? AND tokenSesion = ?`;
 
-        const [result] = await connect.query(query,[idUsuario]);
+        const [result] = await connect.query(query,[idUsuario, token]);
 
         if(result.affectedRows == 0) return {status:false, message:"Error al cerrar sesion"};
 
-        return {status:true, message:"Deslogue exitoso"};
+        return {status:true, message:"Deslogueo exitoso"};
     } catch (error) {
         throw new Error(error);
     }finally{
@@ -85,6 +85,8 @@ export const deleteSesion = async (idSesion) => {
         return result.affectedRows;
     } catch (error) {
         throw new Error(error);
+    }finally{
+        connect.releaseConnection();
     }
 };
 
@@ -101,14 +103,16 @@ export const createUserService = async (usuario) => {
         const hashPassword = await bcrypt.hash(usuario.password, 10);
 
         // inserto el nuevo usuario
-        const [newUser] = await connect.execute(`INSERT INTO usuario (alias, email, telefono, idRol, estado, password)
-                        VALUES (?, ?, ? ,?, ?, ?)`, [usuario.alias, usuario.email, usuario.telefono, usuario.idRol, usuario.estado, hashPassword]);
+        const [newUser] = await connect.execute(`INSERT INTO usuario (alias, email, telefono, idRol, estado, fecha_nacimiento, password)
+                        VALUES (?, ?, ? ,?, ?, ?, ?)`, [usuario.alias, usuario.email, usuario.telefono, Number(usuario.idRol), Number(usuario.estado),usuario.fechaNacimiento, hashPassword]);
 
         if(newUser.affectedRows == 0) return {satus: false, message: "Error al crear usuario" };
 
         return {status: true, usuario: newUser.insertId};
     } catch (error) {
         throw new Error(error);
+    }finally{
+        connect.releaseConnection();
     }
 };
 
@@ -116,7 +120,11 @@ export const createUserService = async (usuario) => {
 export const getAllUsersService = async () => {
     const connect = await Connection();
     try {
-        const query = `SELECT u.id as idUser, u.alias, u.email, u.telefono,u.fecha_nacimiento, r.id as idRol, r.nombre 
+        const query = `SELECT u.id as idUser, u.alias, u.email, u.telefono,u.fecha_nacimiento, r.id as idRol, r.nombre as rol,
+                            CASE 
+                            WHEN u.estado = 1 THEN 'Activo' 
+                            ELSE 'Inactivo' 
+                        END as estado
                         FROM usuario u 
                         LEFT JOIN roles r
                         on u.idRol = r.id
@@ -126,6 +134,8 @@ export const getAllUsersService = async () => {
         return usuarios;
     } catch (error) {
         throw new Error(error);
+    }finally{
+        connect.releaseConnection();
     }
 };
 
@@ -133,7 +143,11 @@ export const getAllUsersService = async () => {
 export const getUserByIdService = async (id) => {
     const connect = await Connection();
     try {
-        const query = `SELECT u.id as idUser, u.alias, u.email, u.telefono,u.fecha_nacimiento, r.id as idRol, r.nombre 
+        const query = `SELECT u.id as idUser, u.alias, u.email, u.telefono,u.fecha_nacimiento, r.id as idRol, r.nombre as rol,
+                        CASE 
+                            WHEN u.estado = 1 THEN 'Activo' 
+                            ELSE 'Inactivo' 
+                        END as estado 
                         FROM usuario u 
                         LEFT JOIN roles r
                         on u.idRol = r.id
@@ -146,6 +160,8 @@ export const getUserByIdService = async (id) => {
         return rows;
     } catch (error) {
         throw new Error(error);
+    }finally{
+        connect.releaseConnection();
     }
 };
 
@@ -153,14 +169,25 @@ export const getUserByIdService = async (id) => {
 export const updateUserService = async (id, usuario) => {
     const connect = await Connection();
     try {
-        const result = await connect.query(
+        // valido si existe un usuario con ese mail
+        const [existUser] = await connect.query('SELECT * FROM usuario WHERE email = ? and id != ?', [usuario.email, id]);
+
+        if(existUser.length > 0) return {status: false, message: "El usuario ya existe"}
+
+        // realizo actualizacion del usuario
+        const [result] = await connect.query(
             'UPDATE usuario SET alias = ?, email = ?, telefono = ?, idRol = ?, estado = ?, fecha_nacimiento = ? WHERE id = ?',
-            [usuario.alias, usuario.email, usuario.telefono, usuario.idRol, usuario.estado, usuario.fecha_nacimiento, id]);
-
-
-        return result.affectedRows;
+            [usuario.alias, usuario.email, usuario.telefono, usuario.idRol, Number(usuario.estado), usuario.fechaNacimiento, id]);
+        
+        if(result.affectedRows == 1){
+            return {status:true, message:"Usuario actualizado"};
+        }else{
+            return {status:false, message:"usuario no actualizado"};
+        }
     } catch (error) {
         throw new Error(error);
+    }finally{
+        connect.releaseConnection();
     }
 };
 
@@ -175,5 +202,7 @@ export const updatePasswordService = async (id, password) => {
         return result.affectedRows;
     } catch (error) {
         throw new Error(error);
+    }finally{
+        connect.releaseConnection();
     }
 };  

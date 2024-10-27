@@ -3,6 +3,7 @@ import { Router } from "express";
 //? funciones de controlador de cliente
 import { 
     getClienteController,
+    getClienteActivosController,
     getClienteIdController,
     postClienteController,
     putClienteController,
@@ -12,6 +13,9 @@ const clientesRouter = Router();
 
 // obtener todos los clientes
 clientesRouter.get('/',getClienteController);
+
+// obtener los clientes con estado 1
+clientesRouter.get('/activos', getClienteActivosController);
 
 // obtener cliente por id
 clientesRouter.get('/:id', getClienteIdController);

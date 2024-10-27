@@ -2,6 +2,7 @@
 
 import { 
     getAllClientService,
+    getClientsActiveService,
     getClientByIdService,
     createClientService,
     updateClientService,
@@ -17,6 +18,21 @@ export const getClienteController = async(req,res)=>{
         if(clientes.status === false) return res.status(404).json({message: clientes.message}); 
 
         return res.status(200).json(clientes);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// obtener los clientes activos ( estado = 1 )
+export const getClienteActivosController = async(req, res)=>{
+    try {
+        const clientes = await getClientsActiveService();
+
+        if(clientes.status === false) return res.status(404).json({message: clientes.message});
+
+        const clientesActivos = clientes.filter(cliente => cliente.estado === 1);
+
+        return res.status(200).json(clientesActivos);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

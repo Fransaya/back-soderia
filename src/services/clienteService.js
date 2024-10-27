@@ -22,6 +22,40 @@ export const getAllClientService = async () => {
     }
 };
 
+// obtener clientes activos
+export const getClientsActiveService = async()=>{
+    const connect = await Connection();
+    try {
+        const query = `SELECT
+                    c.id,
+                    c.nombre,
+                    c.email,
+                    c.telefono,
+                    c.direccion,
+                    b.idBarrio,
+                    b.nombre AS barrio_nombre,
+                    c.estado,
+                    c.observaciones
+                FROM
+                    clientes c
+                LEFT JOIN
+                    barrio b ON c.idBarrio = b.idBarrio
+                WHERE
+                    c.estado = 1;`;
+
+        const [clientes] = await connect.execute(query);
+
+        if(clientes.length === 0) return {status:false, message: "No se encontraron clientes" };
+
+        return clientes
+    } catch (error) {
+        console.error("Error al obtener clientes activos", error)   
+        throw new Error("Error al obtener clientes activos");
+    } finally {
+        connect.releaseConnection();
+    }
+}
+
 // obtener cliente por id
 export const getClientByIdService = async(id) => {
     const connect = await Connection();
@@ -59,7 +93,6 @@ export const getClientByIdService = async(id) => {
 export const createClientService = async(cliente) => {
     const connect = await Connection();
     try {
-        console.log("cliente recibido", cliente)
         // valido primero si existe un cliente por ese cuit o dni
         const existCliente = `SELECT * FROM clientes where (email = ?)`;
 

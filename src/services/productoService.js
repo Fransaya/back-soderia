@@ -1,47 +1,33 @@
+import { previousDay } from "date-fns";
 import Connection from "../config/db.js";
 import { randomCodeProduct } from "../functions/generateCode.js";
+import { id } from "date-fns/locale";
 
 //* OBTENER TODOS LOS PRODUCTOS
 const getProductos = async()=>{
     const connect = await Connection();
     try {
-        const query = `SELECT 
-                p.id AS producto_id,
-                p.nombre,
-                p.descripcion,
-                p.codigo,
-                p.precioMinorista,
-                p.precioMayorista,
-                p.costo,
-                p.tipo,
-                p.fecha_registro,
-                p.stock_total,
-                p.xs,
-                p.s,
-                p.m,
-                p.l,
-                p.xl,
-                p.xxl,
-                p.xxxl,
-                p.a6xl,
-                p.a7xl,
-                p.a8xl,
-                p.a9xl,
-                p.a10xl,
-                p.n4,
-                p.n5,
-                p.n6,
-                p.n7,
-                p.n8,
-                p.n9,
-                p.n10,
-                p.n11,
-                p.n12,
-                p.n13,
-                p.n14,
-                p.notaAdicional
-            FROM 
-                productos p;`
+        const query = `SELECT  * FROM producto p;`
+        const [result] =  await connect.query(query);
+
+        if(result.length == 0){
+            throw new Error(`No se encontraron producto`);
+        }
+
+        return result;
+    } catch (error) {
+        console.error("Error al obtener los productos", error);
+        throw error;
+    }finally{
+        connect.releaseConnection();
+    }
+};
+
+//* OBTENER LOS PRODUCTOS CON ESTADO 1
+const getProductoActiveService = async()=>{
+    const connect = await Connection();
+    try {
+        const query = `SELECT  * FROM producto p WHERE p.estado = 1;`
         const [result] =  await connect.query(query);
 
         if(result.length == 0){
@@ -57,109 +43,13 @@ const getProductos = async()=>{
     }
 }
 
-//* OBTENER PRODUCTO POR CODIGO
-const getProductoCodigo = async (codigo) => {
-    const connect = await Connection();
-    try {
-        
-        const query = `
-            SELECT 
-                p.id AS producto_id,
-                p.nombre,
-                p.descripcion,
-                p.codigo,
-                p.precioMinorista,
-                p.precioMayorista,
-                p.costo,
-                p.tipo,
-                p.fecha_registro,
-                p.stock_total,
-                p.xs,
-                p.s,
-                p.m,
-                p.l,
-                p.xl,
-                p.xxl,
-                p.xxxl,
-                p.a6xl,
-                p.a7xl,
-                p.a8xl,
-                p.a9xl,
-                p.a10xl,
-                p.n4,
-                p.n5,
-                p.n6,
-                p.n7,
-                p.n8,
-                p.n9,
-                p.n10,
-                p.n11,
-                p.n12,
-                p.n13,
-                p.n14,
-                p.notaAdicional
-            FROM 
-                productos p
-            WHERE 
-                p.codigo = ?;`;
-        const [result] = await connect.execute(query, [codigo]);
-
-        if (result.length === 0) {
-            throw new Error(`No se encontró el producto con el código: ${codigo}`);
-        }
-
-        return result;
-    } catch (error) {
-        console.error("Error al obtener producto por código:", error);
-        throw error; 
-    }finally{
-        connect.releaseConnection();
-    }
-};
-
-
-
 //* OBTENER PRODUCTO POR ID
 const getProductoId = async(id)=>{
     const connect =  await Connection();
     try {
-        const query = `SELECT 
-                p.id AS producto_id,
-                p.nombre,
-                p.descripcion,
-                p.codigo,
-                p.precioMinorista,
-                p.precioMayorista,
-                p.costo,
-                p.tipo,
-                p.fecha_registro,
-                p.stock_total,
-                p.xs,
-                p.s,
-                p.m,
-                p.l,
-                p.xl,
-                p.xxl,
-                p.xxxl,
-                p.a6xl,
-                p.a7xl,
-                p.a8xl,
-                p.a9xl,
-                p.a10xl,
-                p.n4,
-                p.n5,
-                p.n6,
-                p.n7,
-                p.n8,
-                p.n9,
-                p.n10,
-                p.n11,
-                p.n12,
-                p.n13,
-                p.n14,
-                p.notaAdicional
+        const query = `SELECT *
             FROM 
-                productos p
+                producto p
             WHERE 
                 p.id = ?;`
         const [result] = await connect.execute(query,[id]);
@@ -178,77 +68,44 @@ const getProductoId = async(id)=>{
 //* CREAR PRODUCTO
 const createProduct = async(product)=>{
     const connect = await Connection();
-    
-    const validCode = await randomCodeProduct(product.codigo);
+    try {
+        // Reemplaza valores `undefined` con `null`
+        const values = [
+            product.nombre ?? null,
+            product.descripcion ?? null,
+            product.precio ?? null,
+            product.estado ?? null,
+        ];
 
-    // Reemplaza valores `undefined` con `null`
-    const values = [
-        product.nombre ?? null,
-        product.descripcion ?? null,
-        product.codigo = validCode,
-        product.precioMinorista ?? null,
-        product.precioMayorista ?? null,
-        product.costo ?? null,
-        product.tipo ?? null,
-        product.fecha_registro ?? null,
-        product.stock_total ?? 0,
-        product.xs ?? 0,
-        product.s ?? 0,
-        product.m ?? 0,
-        product.l ?? 0,
-        product.xl ?? 0,
-        product.xxl ?? 0,
-        product.xxxl ?? 0,
-        product.a6xl ?? 0,
-        product.a7xl ?? 0,
-        product.a8xl ?? 0,
-        product.a9xl ?? 0,
-        product.a10xl ?? 0,
-        product.n4 ?? 0,
-        product.n5 ?? 0,
-        product.n6 ?? 0,
-        product.n7 ?? 0,
-        product.n8 ?? 0,
-        product.n9 ?? 0,
-        product.n10 ?? 0,
-        product.n11 ?? 0,
-        product.n12 ?? 0,
-        product.n13 ?? 0,
-        product.n14 ?? 0,
-        product.notaAdicional ?? null
-    ];
-    try{
-        const query = `INSERT INTO productos 
-                (nombre, descripcion, codigo, precioMinorista, precioMayorista, costo, tipo, fecha_registro, stock_total, xs, s, m, l, xl, xxl, xxxl, a6xl, a7xl, a8xl, a9xl, a10xl, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, notaAdicional)
-            VALUES 
-                (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`;
+        const query = `INSERT INTO producto (nombre, descripcion, precio, estado) VALUES (?,?,?,?)`;
         const [result] = await connect.execute(query, values);
 
-        return result;
-    }finally{
+        if(result.affectedRows == 0) return new Error("Error al crear producto");
+
+        return {status:true, message:"Producto creado correctamente"};
+    } catch (error) {
+        console.error("Error al crear producto", error);    
+    } finally {
         connect.releaseConnection();
     }
 };
 
 //* MODIFICAR PRODUCTO
-const updateProduct = async(id,nombre,descripcion,codigo,precioMinorista,precioMayorista,costo,tipo,fecha_registro,stock_total,xs,s,m,l,xl,xxl,xxxl,a6, a7, a8, a9, a10, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14,notaAdicional)=>{
+const updateProduct = async(id,producto)=>{
     const connect = await Connection();
     try {
         // Validación de parámetros
         if (id === undefined || id === null) {
             throw new Error('El ID del producto es obligatorio.');
         }
-        const query = `UPDATE productos 
-            SET nombre = ?, descripcion = ?, codigo = ?, precioMinorista = ?, precioMayorista = ?, costo = ?, tipo = ?, fecha_registro = ?, stock_total = ?, xs = ?, s = ?, m = ?, l = ?, xl = ?, xxl = ?, xxxl = ?, a6xl = ?, a7xl = ?, a8xl = ?, a9xl = ?, a10xl = ?, n4 = ?, n5 = ?, n6 = ?, n7 = ?, n8 = ?, n9 = ?, n10 = ?, n11 = ?, n12 = ?, n13 = ?, n14 = ?, notaAdicional = ? 
-            WHERE id = ?`;
+        const query = `UPDATE producto SET nombre = ?, descripcion = ?, estado = ?, precio = ? WHERE id = ?;`;
 
         const [result] = await connect.execute(query, [
-            nombre, descripcion, codigo, precioMinorista, precioMayorista, costo, tipo, 
-            fecha_registro, stock_total, xs, s, m, l, xl, xxl, xxxl, a6, a7, a8, a9, a10, 
-            n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, notaAdicional, id
-        ]);
+            producto.nombre, producto.descripcion, producto.estado, producto.precio, id]);
 
-        return result;
+        if(result.affectedRows == 0) return new Error("Error al actualizar producto");
+
+        return {status:true, message:"Producto modificado"};
     } catch (error) {
         console.error('Error al actualizar producto:', error);
         throw error; // Opcional: vuelve a lanzar el error para que sea manejado en el nivel superior
@@ -270,11 +127,95 @@ const deleteProduct = async(id)=>{
     }
 };
 
+//* obtener productos de una lista de precios
+const getListaPrecio = async()=>{
+    const connect = await Connection();
+    try {
+        const query = `SELECT lp.idDetalle as idDetalleLista, lp.idLista, lp.idProducto, p.nombre, lp.precioProducto, lp.estado FROM detalleListaPrecio lp
+                        LEFT JOIN producto p
+                            ON p.id = lp.idProducto
+                        ORDER BY lp.idDetalle;`
+
+        const [listaPrecios] = await connect.query(query);
+
+        if(listaPrecios.length == 0) return {status:false, message:"No se encontraron productos en la lista de precios"}
+
+        return {status:true, data:listaPrecios};
+    }catch{
+        console.error("Error al obtener lista de precios");
+        throw new Error("Error al obtener lista de precios");
+    }finally {
+        connect.releaseConnection();
+    } 
+};
+
+//* agregar productos a una lista de precios
+const addProductsListaPrecio = async(productos)=>{
+    const connect = await Connection();
+    try {
+        console.log("array de productos", productos.length)
+        // CONSULTA PARA AGREGAR PRODUCTOS A LA LISTA DE PRECIOS
+        const query = `INSERT INTO detalleListaPrecio (idLista, idProducto, precioProducto, estado) VALUES (?, ?, ?, ?);`;
+
+        // ITERACION DE ARRAY DE PRODUCTOS
+        for(let i=0; i < productos.length; i++){
+            const [result] = await connect.execute(query, [1, productos[i].id, productos[i].precio, 1]);
+
+            if(!result.insertId) return new Error("Error al agregar productos a la lista de precios");
+        }
+
+        return {status:true, message:"Productos agregados a la lista de precios"};
+    } catch (error) {
+        console.error("Error al agregar productos a la lista de precios");
+        throw new Error("Error al agregar productos a la lista de precios");
+    } finally {
+        connect.releaseConnection();
+    }
+};
+
+//* modificar producto de la lista de precio
+const updateProductoListaPrecio = async(idDetalle, producto)=>{
+    const connect = await Connection();
+    try {
+        const query = `UPDATE detalleListaPrecio SET precioProducto = ? WHERE idDetalle = ?;`;
+        const [result] = await connect.execute(query, [producto.precioProducto, idDetalle]);
+
+        if(result.affectedRows == 0) return new Error("Error al modificar producto de la lista de precios");
+
+        return {status:true, message:"Producto modificado de la lista de precios"}
+    }catch{
+        console.error("Error al modificar producto de la lista de precios");
+        throw new Error("Error al modificar producto de la lista de precios");
+    } finally {
+        connect.releaseConnection();
+    }
+};
+
+//* eliminar producto de la lista de precio
+const deleteProductoListaPrecio = async(idDetalle)=>{
+    const connect = await Connection();
+    try {
+        const query = `DELETE FROM detalleListaPrecio WHERE idDetalle = ?`;
+        const [result] = await connect.execute(query, [idDetalle]);
+
+        return result;
+    }catch{
+        console.error("Error al eliminar producto de la lista de precios");
+        throw new Error("Error al eliminar producto de la lista de precios");
+    } finally {
+        connect.releaseConnection();
+    }
+}
+
 export default {
     getProductos,
-    getProductoCodigo,
+    getProductoActiveService,
     getProductoId,
     createProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getListaPrecio,
+    updateProductoListaPrecio,
+    addProductsListaPrecio,
+    deleteProductoListaPrecio
 }

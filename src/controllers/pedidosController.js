@@ -3,7 +3,6 @@ import {
     getPedidosService,
     registrarPedidoService,
     updatePedidoService,
-    addProductoToPedidoService,
     deleteProductosPedidoService
 } from "../services/pedidoService.js";
 
@@ -14,7 +13,7 @@ export const getPedidosContoller =async(req,res,next)=>{
         const pedidos = await getPedidosService({fecha, estado, idCliente});
 
         if(pedidos.length === 0){
-            res.status(404).json({message: "No se encontraron pedidos"});
+            res.status(404).json({message: "No hay pedidos registrados"});
         } else {
             res.status(200).json(pedidos);
         }
@@ -47,23 +46,6 @@ export const updatePedidoController = async(req, res, next)=>{
     try {
         const pedidoModificado = await updatePedidoService(id, pedido);
 
-        if(pedidoModificado.status == false) return res.status(400).json(pedidoModificado);
-
-        return res.status(200).json(pedidoModificado);
-    } catch (error) {
-        console.error("Error al modificar el pedido", error);
-        next(error);
-    };
-};
-
-//* modificar pedido => agregar un nuevo producto al pedido
-export const addProductoPedidoController = async(req, res, next)=>{
-    const { id } = req.params;
-    const producto = req.body;
-    try {
-        const pedidoModificado = await addProductoToPedidoService(id, producto);
-
-        if(pedidoModificado.status == false) return res.status(400).json(pedidoModificado);
 
         return res.status(200).json(pedidoModificado);
     } catch (error) {
@@ -75,9 +57,9 @@ export const addProductoPedidoController = async(req, res, next)=>{
 //* eliminar productos de un pedido en estado ( RECIBIDO )
 export const deleteProductoPedidoController = async(req, res, next)=>{
     const { id } = req.params;
-    const productos = req.body;
+    const producto = req.body;
     try {
-        const productosEliminados = await deleteProductosPedidoService(id, productos);
+        const productosEliminados = await deleteProductosPedidoService(id, producto);
 
         return res.status(200).json(productosEliminados);
     } catch (error) {

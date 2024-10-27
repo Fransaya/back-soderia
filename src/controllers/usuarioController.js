@@ -25,9 +25,9 @@ export const loginController = async(req,res)=>{
 
 // logout 
 export const logoutController = async(req, res)=>{
-    const {id} = req.params;
+    const body = req.body;
     try {
-        const result = await logoutService(id);
+        const result = await logoutService(body.id, body.token);
 
         if(result.status == false) return res.status(400).json({message: result.message});
 
@@ -87,7 +87,9 @@ export const updateUserController = async(req, res)=>{
     try {
         const result = await updateUserService(id, usuario);
 
-        if(result == 0) return res.status(400).json({message: "Usuario no encontrado"});
+        console.log("result",result)
+
+        if(!result.status) return res.status(400).json({message: result.message});
 
         return res.status(200).json({message: "Usuario actualizado correctamente"});
     } catch (error) {
@@ -103,7 +105,7 @@ export const updatePasswordUserController = async(req, res)=>{
     try {
         const result = await updatePasswordService(id, password);
 
-        if(result == 0) return res.status(400).json({message: "No se actualizo la contraseña"});
+        if(!result) return res.status(400).json({message: "No se actualizo la contraseña"});
 
         return res.status(200).json({message: "Contraseña actualizada correctamente"});
     } catch (error) {

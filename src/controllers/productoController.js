@@ -14,21 +14,20 @@ const allProductos = async(req,res)=>{
     }
 };
 
-//* obtener producto por codigo
-const productByCodigo = async(req,res)=>{
+//* obtener productos activos
+const getProductosActive = async(req,res, next)=>{
     try {
-        const codigo = req.params.codigo;
-
-        const producto = await productoService.getProductoCodigo(codigo);
-        if(producto){
-            return res.status(200).json(producto);
+        const productos = await productoService.getProductoActiveService();
+        if(productos){
+            return res.status(200).json(productos);
         }else{
-            return res.status(404).json({status:false, message: 'Error al obtener producto'});
+            return res.status(404).json({status:false, message: "No existen productos productos"})
         }
     } catch (error) {
-        return res.status(500).json({message:"Error al obtener producto por codigo", error: error.message});
+        return res.status(500).json({message:"Error al obtener todos los productos", error: error.message});
     }
-};
+
+}
 
 //* obtener producto por id
 const productById=async(req,res)=>{
@@ -72,7 +71,7 @@ const updateProducto = async(req,res)=>{
 
         const product = req.body;
     
-        const result = await productoService.updateProduct(id,product.nombre,product.descripcion,product.codigo,product.precioMinorista,product.precioMayorista,product.costo,product.tipo,product.fecha_registro,product.stock_total,product.xs,product.s,product.m,product.l,product.xl,product.xxl,product.xxxl,product.a6xl, product.a7xl, product.a8xl, product.a9xl, product.a10xl, product.n4, product.n5, product.n6, product.n7, product.n8, product.n9, product.n10, product.n11, product.n12, product.n13, product.n14, product.notaAdicional);
+        const result = await productoService.updateProduct(id,product);
     
         if(result){
             return res.status(201).json({status:true,message:'Producto actualizado correctamente'});
@@ -101,12 +100,82 @@ const deleteProducto = async(req,res)=>{
     }
 };
 
+//* obtener productos de la lista de precios
+const listaPrecios= async(req,res)=>{
+    try {
+        const productos = await productoService.getListaPrecio();
+
+        return res.status(200).json(productos);
+    } catch (error) {
+        return res.status(500).json({message:"Error al obtener lista de precios", error:error.message})
+    }
+}
+
+//* agregar productos a la lista de precios
+const addProuctoListaPrecioController = async(req, res)=>{
+    try {
+        const productos = req.body.productos;
+
+        console.log("productos", productos)
+
+        const result = await productoService.addProductsListaPrecio(productos);
+
+        if(result){
+            return res.status(201).json({status:true, message:'Productos agregados a la lista de precios'});
+        }else{
+            return res.status(404).json({status:false, message:'Error al agregar productos a la lista de precios'});
+        }
+    } catch (error) {
+        return res.status(500).json({message:"Error al agregar productos a la lista de precios", error:error.message})
+    }
+};
+
+//* actualizar producto de la lista de precios
+const updateProductoListaPrecioController = async(req, res)=>{
+    try {
+        const idDetalle = req.params.idDetalle;
+        const producto = req.body;
+        console.log("datos", producto, "id", idDetalle)
+
+        const result = await productoService.updateProductoListaPrecio(idDetalle, producto);
+
+        if(result){
+            return res.status(200).json({message:'Producto actualizado de la lista de precios'});
+        }else{
+            return res.status(404).json({status:false, message:'Error al actualizar producto de la lista de precios'});
+        }
+    } catch (error) {
+        return res.status(500).json({message:"Error al actualizar producto de la lista de precios", error:error.message})
+    }
+}
+
+//* eliminar productos de la lista de precio
+const deleteProductoListaPrecioController = async(req, res)=>{
+    try {
+        const idDetalle = req.params.idDetalle;
+
+        const result = await productoService.deleteProductoListaPrecio(idDetalle);
+
+        if(result){
+            return res.status(200).json({message:'Producto eliminado de la lista de precios'});
+        }else{
+            return res.status(404).json({status:false, message:'Error al eliminar producto de la lista de precios'});
+        }
+    } catch (error) {
+        return res.status(500).json({message:"Error al eliminar producto de la lista de precios", error:error.message})
+    }
+}
+
 export default {
     allProductos,
-    productByCodigo,
+    getProductosActive,
     productById,
     createNewProduct,
     updateProducto,
-    deleteProducto
+    deleteProducto,
+    listaPrecios,
+    updateProductoListaPrecioController,
+    addProuctoListaPrecioController,
+    deleteProductoListaPrecioController
 }
 

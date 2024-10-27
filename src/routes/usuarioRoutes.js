@@ -16,7 +16,7 @@ const usuarioRoute = Router();
 usuarioRoute.post('/login', loginController);
 
 // logout 
-usuarioRoute.post('/logout/:id', logoutController);
+usuarioRoute.post('/logout', logoutController);
 
 // get all users
 usuarioRoute.get('/', getAllUsersController);
@@ -30,7 +30,7 @@ usuarioRoute.post('/', createUserController);
 // update user by id
 usuarioRoute.put('/:id', updateUserController);
 
-// update status user
+// update password
 usuarioRoute.put('/password/:id',updatePasswordUserController);
 
 export default usuarioRoute;
