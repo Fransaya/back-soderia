@@ -8,9 +8,9 @@ import {
 
 //* obtener todos los pedidos
 export const getPedidosContoller =async(req,res,next)=>{
-    const { fecha, estado, idCliente } = req.query;
+    const { fecha, estado, idCliente, fechaDesde, fechaHasta } = req.query;
     try {
-        const pedidos = await getPedidosService({fecha, estado, idCliente});
+        const pedidos = await getPedidosService({fecha, estado, idCliente, fechaDesde, fechaHasta});
 
         if(pedidos.length === 0){
             res.status(404).json({message: "No hay pedidos registrados"});

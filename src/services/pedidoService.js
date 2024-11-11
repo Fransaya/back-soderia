@@ -1,7 +1,7 @@
 import Connection from "../config/db.js";
 
 //* obtener todos los pedidos
-export const getPedidosService = async({ fecha, estado, idCliente } = {})=>{
+export const getPedidosService = async({ fecha, estado, idCliente, fechaDesde, fechaHasta } = {})=>{
     const connect = await Connection();
     try {
         // condiciones dinamicas
@@ -23,6 +23,11 @@ export const getPedidosService = async({ fecha, estado, idCliente } = {})=>{
             condiciones.push("p.idCliente = ?");
             values.push(idCliente);
         };
+
+        if(fechaDesde && fechaHasta){
+            condiciones.push("p.fechaRegistro BETWEEN ? AND ?");
+            values.push(fechaDesde, fechaHasta);
+        }
 
         // consulta para obtener unicamente los pedidos ( informacion basica de los pedidos X sin detalles)
         let queryPedido = `select p.idPedido, c.id as idCliente, c.nombre, c.telefono, c.direccion, b.nombre as barrioCliente, u.id as idUsuario, p.total as totalPedido,
